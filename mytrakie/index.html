@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Trakie — watch somebody carry your package</title>
+<meta name="description" content="Enter a tracking number and watch your package move across a live map, carried by a small, unreasonably hairy courier." />
+<meta name="theme-color" content="#0C1030" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="stylesheet" href="/assets/css/style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230C1030'/%3E%3Cpath d='M16.0%204.7%20L18.06%206.49%20L20.88%205.62%20L21.68%208.28%20L24.58%208.73%20L24.15%2011.35%20L26.05%2013.07%20L24.73%2015.18%20L25.45%2017.51%20L23.2%2018.79%20L22.72%2021.2%20L19.98%2021.21%20L18.48%2023.48%20L16.0%2022.47%20L13.57%2023.31%20L11.98%2021.26%20L9.05%2021.44%20L8.57%2018.93%20L6.23%2017.62%20L7.33%2015.17%20L5.38%2013.01%20L8.01%2011.4%20L7.26%208.63%20L10.25%208.2%20L11.27%205.88%20L13.95%206.5%20Z' fill='%23FF8A46'/%3E%3Ccircle cx='11.6' cy='11.4' r='2' fill='%230C1030'/%3E%3Ccircle cx='20.4' cy='11.4' r='2' fill='%230C1030'/%3E%3Crect x='9.1' y='18.4' width='13.8' height='10.4' rx='1.7' fill='%23C79A62'/%3E%3Cpath d='M16 18.4v10.4' stroke='%23EFE3CC' stroke-width='1.5'/%3E%3C/svg%3E" />
+</head>
+<body data-view="home">
+
+<!-- one persistent 3D stage sits above the page, below the chrome -->
+<div id="stage" aria-hidden="true"><canvas id="stage-canvas"></canvas></div>
+
+<header class="nav">
+  <a class="brand" href="#" data-action="home">
+    <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="lgFur" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FFC24B"/><stop offset="1" stop-color="#E56B25"/>
+        </linearGradient>
+      </defs>
+      <path d="M10.6 7.4C8.8 6.1 8.1 4 8.9 2.2c2 .5 3.6 2.1 4.1 4.1z" fill="#D9C9A6"/>
+      <path d="M21.4 7.4c1.8-1.3 2.5-3.4 1.7-5.2-2 .5-3.6 2.1-4.1 4.1z" fill="#D9C9A6"/>
+      <path d="M16.0 4.7 L18.06 6.49 L20.88 5.62 L21.68 8.28 L24.58 8.73 L24.15 11.35 L26.05 13.07 L24.73 15.18 L25.45 17.51 L23.2 18.79 L22.72 21.2 L19.98 21.21 L18.48 23.48 L16.0 22.47 L13.57 23.31 L11.98 21.26 L9.05 21.44 L8.57 18.93 L6.23 17.62 L7.33 15.17 L5.38 13.01 L8.01 11.4 L7.26 8.63 L10.25 8.2 L11.27 5.88 L13.95 6.5 Z" fill="url(#lgFur)"/>
+      <ellipse cx="16" cy="15.4" rx="5.1" ry="4.1" fill="#F0E0C4"/>
+      <ellipse cx="16" cy="12.9" rx="1.5" ry="1.15" fill="#241F19"/>
+      <circle cx="11.6" cy="11.4" r="2.05" fill="#241F19"/>
+      <circle cx="20.4" cy="11.4" r="2.05" fill="#241F19"/>
+      <circle cx="12.35" cy="10.75" r=".62" fill="#fff"/>
+      <circle cx="21.15" cy="10.75" r=".62" fill="#fff"/>
+      <circle cx="7.9" cy="21.5" r="2.5" fill="#E5A44A"/>
+      <circle cx="24.1" cy="21.5" r="2.5" fill="#E5A44A"/>
+      <rect x="9.1" y="18.4" width="13.8" height="10.4" rx="1.7" fill="#C79A62"/>
+      <rect x="9.1" y="18.4" width="13.8" height="10.4" rx="1.7" fill="none" stroke="#0C1030" stroke-width="1.1" stroke-opacity=".22"/>
+      <path d="M16 18.4v10.4M9.1 22.6h13.8" stroke="#EFE3CC" stroke-width="1.5"/>
+    </svg>
+    <span class="brand__word">trakie</span>
+  </a>
+  <nav class="nav__links">
+    <a href="#how">How it works</a>
+    <a href="#carriers">Carriers</a>
+    <button class="btn btn--ghost" data-action="customize">Customize your courier</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ───────────────────────── hero ───────────────────────── -->
+  <section class="hero" id="top">
+    <div class="hero__copy">
+      <p class="eyebrow">Live parcel tracking</p>
+      <h1 class="display">Somebody is<br>carrying your box.</h1>
+      <p class="lede">Paste a tracking number. Trakie picks the parcel up, loads it into the right truck, and you watch the whole trip on a live map until it lands on your porch.</p>
+
+      <form class="track-form" id="track-form" autocomplete="off">
+        <label class="sr-only" for="track-input">Tracking number</label>
+        <input id="track-input" name="number" type="text" inputmode="latin" spellcheck="false"
+               placeholder="1Z999AA10123456784" aria-describedby="carrier-hint" />
+        <button class="btn btn--solid" type="submit">Track it</button>
+      </form>
+      <p class="hint" id="carrier-hint">We'll work out the carrier ourselves.</p>
+
+      <div class="samples">
+        <span class="samples__label">Try one:</span>
+        <button class="chip" data-demo="ups">UPS ground</button>
+        <button class="chip" data-demo="fedex">FedEx air</button>
+        <button class="chip" data-demo="dhl">DHL from Shenzhen</button>
+      </div>
+    </div>
+    <div class="hero__spacer" aria-hidden="true"></div>
+  </section>
+
+  <!-- ───────────────────────── track view ───────────────────────── -->
+  <section class="track" id="track" hidden>
+    <!-- waybill: the paper artifact of the shipping world -->
+    <aside class="waybill" id="waybill">
+      <div class="waybill__perf" aria-hidden="true"></div>
+      <div class="waybill__head">
+        <div>
+          <p class="waybill__carrier" id="wb-carrier">—</p>
+          <p class="waybill__num mono" id="wb-number">—</p>
+        </div>
+        <span class="pill" id="wb-status">Loading</span>
+      </div>
+
+      <div class="waybill__eta">
+        <p class="waybill__label">Arriving</p>
+        <p class="waybill__eta-value" id="wb-eta">—</p>
+        <p class="waybill__route mono" id="wb-route">—</p>
+      </div>
+
+      <div class="progress" role="img" aria-label="Trip progress" id="wb-progress">
+        <div class="progress__bar"><span id="wb-progress-fill"></span></div>
+        <div class="progress__meta mono">
+          <span id="wb-progress-pct">0%</span>
+          <span id="wb-progress-mode">Waiting for pickup</span>
+        </div>
+      </div>
+
+      <p class="waybill__label waybill__label--rule">Scan history</p>
+      <ol class="scans" id="wb-scans"></ol>
+
+      <div class="waybill__barcode" aria-hidden="true"></div>
+      <p class="waybill__foot mono" id="wb-foot">TRAKIE · LIVE</p>
+    </aside>
+
+    <div class="mapwrap">
+      <div id="map"></div>
+      <div class="map-legend mono" id="map-legend"></div>
+      <button class="btn btn--ghost btn--small map-recenter" data-action="recenter">Follow the truck</button>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── how ───────────────────────── -->
+  <section class="how" id="how">
+    <h2 class="section-title">How it works</h2>
+    <ol class="steps">
+      <li>
+        <p class="steps__n mono">Scan 01</p>
+        <h3>You paste a number</h3>
+        <p>Trakie recognises UPS, FedEx, USPS, DHL, Amazon and about forty others from the number alone, then asks the carrier what it knows.</p>
+      </li>
+      <li>
+        <p class="steps__n mono">Scan 02</p>
+        <h3>Your courier loads up</h3>
+        <p>Every time a new scan appears, he walks over, picks the box up and climbs into whatever's going your way — painted in the carrier's colours.</p>
+      </li>
+      <li>
+        <p class="steps__n mono">Scan 03</p>
+        <h3>You watch it move</h3>
+        <p>Ground legs go by truck, long hops go by plane. The map keeps refreshing on its own, so leave the tab open.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="carriers" id="carriers">
+    <h2 class="section-title">Colours he drives</h2>
+    <ul class="carrier-grid" id="carrier-grid"></ul>
+  </section>
+</main>
+
+<footer class="foot">
+  <p class="mono">mytrakie.com</p>
+  <p>Trakie is an independent tracking front end. Carrier names are used to identify services only.</p>
+</footer>
+
+<!-- ───────────────────────── customizer ───────────────────────── -->
+<div class="drawer" id="drawer" hidden>
+  <div class="drawer__scrim" data-action="close-drawer"></div>
+  <div class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer__head">
+      <h2 id="drawer-title" class="display display--sm">Your courier</h2>
+      <button class="btn btn--ghost btn--small" data-action="close-drawer">Done</button>
+    </div>
+
+    <label class="field">
+      <span class="field__label">Name</span>
+      <input type="text" id="opt-name" maxlength="14" placeholder="Trakie" />
+    </label>
+
+    <div class="field">
+      <span class="field__label">Coat</span>
+      <div class="swatches" id="opt-fur"></div>
+    </div>
+
+    <div class="field">
+      <span class="field__label">Belly &amp; snout</span>
+      <div class="swatches" id="opt-belly"></div>
+    </div>
+
+    <div class="field">
+      <span class="field__label">Horns</span>
+      <div class="segmented" id="opt-horns"></div>
+    </div>
+
+    <div class="field">
+      <span class="field__label">Eyes</span>
+      <div class="segmented" id="opt-eyes"></div>
+    </div>
+
+    <div class="field">
+      <span class="field__label">Carrying</span>
+      <div class="segmented" id="opt-accessory"></div>
+    </div>
+
+    <p class="drawer__note">Saved on this device. He keeps the outfit next time.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script type="module" src="/assets/js/app.js"></script>
+</body>
+</html>
